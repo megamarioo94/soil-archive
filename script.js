@@ -153,3 +153,5 @@ function bindLang(){
     render();
   });
 }
+window.addEventListener('hashchange', render);
+render();
