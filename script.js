@@ -115,16 +115,41 @@ function voiceText(e){
   if(LANG==='id') return `${e.code}. ${e.title.id}. ${e.note.id}. Rasanya: ${e.feelsShort.id}. Biasanya ditemukan di ${e.usual.id}. Tanaman yang mendukung: ${e.crops.id}.`;
   return `${e.code}. ${e.title.en}. ${e.note.en}. It feels: ${e.feelsShort.en}. Usually found in ${e.usual.en}. Often supports: ${e.crops.en}.`;
 }
+let currentAudio = null;
+
 function playVoice(id, btn){
-  const e = entryById(id);
-  if(!('speechSynthesis' in window)) return alert('Speech synthesis is not supported in this browser.');
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(voiceText(e));
-  u.lang = LANG==='id' ? 'id-ID' : 'en-US';
-  u.rate = LANG==='id' ? .88 : .9;
-  currentUtterance = u;
-  window.speechSynthesis.speak(u);
+  const entry = entryById(id);
+  const audioId = String(id).toLowerCase();
+  const audioPath = `assets/audio/${audioId}-${LANG}.mp3`;
+
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+  }
+
+  currentAudio = new Audio(audioPath);
+
+  currentAudio.addEventListener('ended', () => {
+    if (btn) btn.textContent = LANG === 'id' ? 'Putar suara' : 'Play voice';
+  });
+
+  currentAudio.addEventListener('error', () => {
+    alert(`Audio file not found: ${audioPath}`);
+  });
+
+  if (btn) btn.textContent = LANG === 'id' ? 'Memutar...' : 'Playing...';
+
+  currentAudio.play();
 }
-function bindLang(){ document.querySelectorAll('[data-lang]').forEach(b=>b.onclick=()=>{ LANG=b.dataset.lang; window.speechSynthesis?.cancel(); render(); }); }
-window.addEventListener('hashchange', render);
-render();
+function bindLang(){
+  document.querySelectorAll('[data-lang]').forEach(b=>b.onclick=()=>{
+    LANG = b.dataset.lang;
+
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+    }
+
+    render();
+  });
+}
