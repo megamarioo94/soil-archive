@@ -1,5 +1,5 @@
 let LANG = 'id';
-let currentUtterance = null;
+let currentAudio = null;
 
 const UI = {
   id: {
@@ -83,9 +83,12 @@ const entries = [
   }
 ];
 
+
 function entryById(id){ return entries.find(e=>e.id===id) || entries[0]; }
 function formatTitle(entry){ return L(entry.title); }
 function splitTitle(entry){ return L(entry.title).replace(' ', '<br>'); }
+function videoPath(e){ return `assets/video/${e.id}.mp4`; }
+function audioPath(e){ return `assets/audio/${e.id}-${LANG}.mp3`; }
 
 function render(){
   document.documentElement.lang = LANG;
@@ -96,62 +99,152 @@ function render(){
   window.scrollTo(0,0);
 }
 
-function renderTop(currentCode=''){
-  return `<div class="wrap"><nav class="topline"><a href="#/">← ${t('index')}</a><span>${currentCode}</span></nav></div>`;
+function renderLang(){
+  return `<div class="lang"><button class="${LANG==='id'?'active':''}" data-lang="id">ID</button><button class="${LANG==='en'?'active':''}" data-lang="en">EN</button></div>`;
 }
-function renderLang(){ return `<div class="lang"><button class="${LANG==='id'?'active':''}" data-lang="id">ID</button><button class="${LANG==='en'?'active':''}" data-lang="en">EN</button></div>`; }
-function footer(){ return `<div class="wrap"><footer class="footer"><span>${t('version')}</span><p>${t('contribute')}</p>${renderLang()}</footer></div>`; }
+
 function renderIndex(){
-  const cards = entries.map(e=>`<a class="card" href="#/${e.id}"><span class="card-img" style="background-image:url('${e.image}')"></span><span class="card-info"><span class="code">${e.code}</span><h2>${splitTitle(e)}</h2><p class="sci">${e.scientific}</p><p class="feels">${L(e.feelsShort)}</p></span></a>`).join('');
-  return `<section class="wrap"><div class="hero-index"><p class="mini">${t('soilArchive')}</p><h1>THE<br>SOIL<br>ARCHIVE</h1><p class="cover-note">${t('subtitle')}</p><p class="logic">${t('logic')}</p></div><div class="archive-intro"><span class="label">VOL. 01</span><p>${t('intro')}</p></div><div class="grid">${cards}</div></section>${footer()}`;
+  const tabs = entries.map((e, i)=>`
+    <a class="archive-tab tab-${i+1}" href="#/${e.id}" style="--i:${i}">
+      <span class="tab-code">${e.code}</span>
+      <span class="tab-title">${formatTitle(e)}</span>
+      <span class="tab-meta">${L(e.feelsShort)}</span>
+      <span class="tab-image" style="background-image:url('${e.image}')"></span>
+    </a>`).join('');
+
+  return `
+    <section class="install-home">
+      <header class="home-top">
+        <span>TERRA FIELD ARCHIVE</span>
+        ${renderLang()}
+      </header>
+
+      <div class="home-orbit" aria-hidden="true">
+        <span>01</span><span>02</span><span>03</span><span>04</span><span>05</span><span>06</span>
+      </div>
+
+      <main class="home-stage">
+        <div class="home-copy">
+          <p class="kicker">VOL. 01 / SOIL SPECIMENS</p>
+          <h1>TERRA<br>FIELD<br>ARCHIVE</h1>
+          <p class="home-lead">${LANG==='id' ? 'Letakkan tile tanah pada area interaksi untuk membuka catatan taktil dan digital.' : 'Place a soil tile on the interaction area to open its tactile and digital record.'}</p>
+          <p class="home-logic">Touch → Quality → Archive</p>
+        </div>
+        <div class="tab-stack" aria-label="Soil entries">${tabs}</div>
+      </main>
+
+      <footer class="home-footer">
+        <span>${LANG==='id' ? 'Menunggu spesimen' : 'Waiting for specimen'}</span>
+        <span>QR / NFC / PN532 READY</span>
+      </footer>
+    </section>`;
 }
-function rows(data){ return data.map(r=>`<dt>${LANG==='id'?r[0]:r[1]}</dt><dd>${LANG==='id'?r[2]:r[3]}</dd>`).join(''); }
-function section(title, data){ return `<section class="section"><h3 class="section-title">${title}</h3><dl class="meta-list">${rows(data)}</dl></section>`; }
+
+function rows(data){
+  return data.map(r=>`<dt>${LANG==='id'?r[0]:r[1]}</dt><dd>${LANG==='id'?r[2]:r[3]}</dd>`).join('');
+}
+
+function miniRows(e){
+  return `
+    <dl class="spec-meta">
+      <dt>${LANG==='id'?'Biasanya ditemukan':'Usually found'}</dt><dd>${L(e.usual)}</dd>
+      <dt>${LANG==='id'?'Tanaman':'Often supports'}</dt><dd>${L(e.crops)}</dd>
+      <dt>${LANG==='id'?'Kualitas':'Quality'}</dt><dd>${L(e.feelsShort)}</dd>
+    </dl>`;
+}
+
 function renderEntry(e){
-  const related = e.related.map(id=>{ const r=entryById(id); return `<a class="related-card" href="#/${r.id}"><span class="thumb" style="background-image:url('${r.image}')"></span><span class="r-code">${r.code}</span><p class="r-title">${formatTitle(r)}</p></a>`; }).join('');
-  return `${renderTop(e.code)}<section class="wrap entry"><div class="entry-grid"><aside class="media"><div class="soil-photo" style="background-image:url('${e.image}')"><span class="caption">${e.scientific}</span></div></aside><article class="entry-body"><header class="entry-head"><p class="code">${e.code}</p><h1>${formatTitle(e)}</h1><p class="sci">${e.scientific}</p></header><button class="voice" onclick="playVoice('${e.id}', this)"><span class="play"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11l9-5.5z"/></svg></span><span><span class="voice-title">${L(e.voiceName)}</span><p class="voice-meta">${e.duration} · ${L(e.language)}</p></span></button><blockquote class="quote"><p class="main">“${L(e.quote)}”</p>${LANG==='id'?`<span class="translation">“${e.quote.en}”</span>`:''}</blockquote><section class="section"><h3 class="section-title">${t('note')}</h3><p class="archive-note">${L(e.note)}</p></section>${section(t('feels'), e.feels)}${section(t('classification'), e.classification)}${section(t('source'), e.source)}<section class="section"><h3 class="section-title">${t('usually')}</h3><dl class="meta-list"><dt>${LANG==='id'?'Lokasi':'Location'}</dt><dd>${L(e.usual)}</dd><dt>${t('crops')}</dt><dd>${L(e.crops)}</dd></dl></section><section class="section"><h3 class="section-title">${t('related')}</h3><div class="related-grid">${related}</div></section></article></div></section>${footer()}`;
+  const related = e.related.map(id=>{ const r=entryById(id); return `<a class="related-pill" href="#/${r.id}">${r.code}</a>`; }).join('');
+
+  return `
+    <section class="specimen-page">
+      <header class="specimen-top">
+        <a href="#/" class="back-link">← ${LANG==='id'?'Indeks':'Index'}</a>
+        <span class="system-label">TERRA DIGITAL ARCHIVE</span>
+        ${renderLang()}
+      </header>
+
+      <aside class="vertical-logic">Touch → Quality → Archive</aside>
+
+      <main class="specimen-stage">
+        <div class="specimen-object">
+          <video class="soil-video" autoplay muted loop playsinline poster="${e.image}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+            <source src="${videoPath(e)}" type="video/mp4">
+          </video>
+          <div class="video-fallback" style="background-image:url('${e.image}')"></div>
+          <div class="object-shadow"></div>
+        </div>
+
+        <article class="specimen-card">
+          <p class="detected">${LANG==='id'?'Spesimen terbaca':'Specimen detected'}</p>
+          <p class="spec-code">${e.code}</p>
+          <h1>${formatTitle(e)}</h1>
+          <p class="scientific">${e.scientific}</p>
+          <blockquote>“${L(e.quote)}”</blockquote>
+
+          <button class="voice" onclick="playVoice('${e.id}', this)">
+            <span class="play"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11l9-5.5z"/></svg></span>
+            <span><span class="voice-title">${L(e.voiceName)}</span><p class="voice-meta">${e.duration} · ${L(e.language)}</p></span>
+          </button>
+
+          ${miniRows(e)}
+
+          <div class="field-ref">
+            <span class="ref-img" style="background-image:url('${e.image}')"></span>
+            <p>${LANG==='id'?'Referensi visual / tekstur lapangan':'Visual reference / field texture'}</p>
+          </div>
+        </article>
+      </main>
+
+      <section class="detail-drawer">
+        <details>
+          <summary>${LANG==='id'?'Buka detail arsip':'Open archive details'}</summary>
+          <div class="detail-grid">
+            <section><h3>${t('note')}</h3><p>${L(e.note)}</p></section>
+            <section><h3>${t('feels')}</h3><dl>${rows(e.feels)}</dl></section>
+            <section><h3>${t('classification')}</h3><dl>${rows(e.classification)}</dl></section>
+            <section><h3>${t('source')}</h3><dl>${rows(e.source)}</dl></section>
+          </div>
+        </details>
+        <div class="related-line"><span>${t('related')}</span>${related}</div>
+      </section>
+    </section>`;
 }
-function voiceText(e){
-  if(LANG==='id') return `${e.code}. ${e.title.id}. ${e.note.id}. Rasanya: ${e.feelsShort.id}. Biasanya ditemukan di ${e.usual.id}. Tanaman yang mendukung: ${e.crops.id}.`;
-  return `${e.code}. ${e.title.en}. ${e.note.en}. It feels: ${e.feelsShort.en}. Usually found in ${e.usual.en}. Often supports: ${e.crops.en}.`;
-}
-let currentAudio = null;
 
 function playVoice(id, btn){
-  const entry = entryById(id);
-  const audioId = String(id).toLowerCase();
-  const audioPath = `assets/audio/${audioId}-${LANG}.mp3`;
+  const e = entryById(id);
+  const path = audioPath(e);
 
   if (currentAudio) {
     currentAudio.pause();
     currentAudio.currentTime = 0;
   }
 
-  currentAudio = new Audio(audioPath);
+  currentAudio = new Audio(path);
+  if (btn) btn.classList.add('playing');
 
   currentAudio.addEventListener('ended', () => {
-    if (btn) btn.textContent = LANG === 'id' ? 'Putar suara' : 'Play voice';
+    if (btn) btn.classList.remove('playing');
   });
 
   currentAudio.addEventListener('error', () => {
-    alert(`Audio file not found: ${audioPath}`);
+    if (btn) btn.classList.remove('playing');
+    alert(`Audio file not found: ${path}`);
   });
-
-  if (btn) btn.textContent = LANG === 'id' ? 'Memutar...' : 'Playing...';
 
   currentAudio.play();
 }
+
 function bindLang(){
   document.querySelectorAll('[data-lang]').forEach(b=>b.onclick=()=>{
     LANG = b.dataset.lang;
-
     if (currentAudio) {
       currentAudio.pause();
       currentAudio.currentTime = 0;
     }
-
     render();
   });
 }
+
 window.addEventListener('hashchange', render);
 render();
