@@ -4,13 +4,13 @@ let currentAudio = null;
 const UI = {
   id: {
     index: 'Indeks', soilArchive: 'The Soil Archive', subtitle: 'This is not a colour-matching chart. It is a sensory index for reading soil through texture, moisture, memory, and embodied farming knowledge.',
-    logic: 'Touch → Quality → Archive', intro: 'Arsip ini disusun sebagai jembatan antara fan card fisik, spesimen tanah taktil, dan catatan digital. Setiap entri dapat dibuka dari indeks ini atau melalui QR/NFC pada kartu dan spesimen.',
+    logic: 'TOUCH-PICK-ARCHIVE', intro: 'Arsip ini disusun sebagai jembatan antara fan card fisik, spesimen tanah taktil, dan catatan digital. Setiap entri dapat dibuka dari indeks ini atau melalui QR/NFC pada kartu dan spesimen.',
     voice: 'Putar catatan suara', note: 'Catatan Arsip', feels: 'Rasa', classification: 'Klasifikasi', source: 'Asal', related: 'Tanah Lain', version: 'v0.2 · tumbuh', contribute: 'Arsip ini masih tumbuh. Punya tanah untuk dititipkan? Hubungi kami.',
     usually: 'Biasanya ditemukan', crops: 'Tanaman yang mendukung'
   },
   en: {
     index: 'Index', soilArchive: 'The Soil Archive', subtitle: 'This is not a colour-matching chart. It is a sensory index for reading soil through texture, moisture, memory, and embodied farming knowledge.',
-    logic: 'Touch → Quality → Archive', intro: 'This archive is designed as a bridge between the physical fan card, tactile soil specimens, and digital notes. Each entry can be accessed from this index or through QR/NFC on the card and specimen.',
+    logic: 'TOUCH-PICK-ARCHIVE', intro: 'This archive is designed as a bridge between the physical fan card, tactile soil specimens, and digital notes. Each entry can be accessed from this index or through QR/NFC on the card and specimen.',
     voice: 'Play voice note', note: 'Archive Note', feels: 'Feels', classification: 'Classification', source: 'Source', related: 'Related Entries', version: 'v0.2 · growing', contribute: 'This archive is still growing. Have soil to contribute? Get in touch.',
     usually: 'Usually found', crops: 'Often supports'
   }
@@ -119,23 +119,18 @@ function renderIndex(){
         ${renderLang()}
       </header>
 
-      <div class="home-orbit" aria-hidden="true">
-        <span>01</span><span>02</span><span>03</span><span>04</span><span>05</span><span>06</span>
-      </div>
-
       <main class="home-stage">
         <div class="home-copy">
           <p class="kicker">VOL. 01 / SOIL SPECIMENS</p>
           <h1>TERRA<br>FIELD<br>ARCHIVE</h1>
           <p class="home-lead">${LANG==='id' ? 'Letakkan tile tanah pada area interaksi untuk membuka catatan taktil dan digital.' : 'Place a soil tile on the interaction area to open its tactile and digital record.'}</p>
-          <p class="home-logic">Touch → Quality → Archive</p>
+          <p class="home-logic">TOUCH-PICK-ARCHIVE</p>
         </div>
         <div class="tab-stack" aria-label="Soil entries">${tabs}</div>
       </main>
 
       <footer class="home-footer">
         <span>${LANG==='id' ? 'Menunggu spesimen' : 'Waiting for specimen'}</span>
-        <span>QR / NFC / PN532 READY</span>
       </footer>
     </section>`;
 }
@@ -164,7 +159,7 @@ function renderEntry(e){
         ${renderLang()}
       </header>
 
-      <aside class="vertical-logic">Touch → Quality → Archive</aside>
+      <aside class="vertical-logic">TOUCH-PICK-ARCHIVE</aside>
 
       <main class="specimen-stage">
         <div class="specimen-object">
