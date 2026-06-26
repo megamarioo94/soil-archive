@@ -1,5 +1,6 @@
 let LANG = 'id';
 let currentAudio = null;
+let homeAnimationFrame = null;
 
 const UI = {
   id: {
@@ -94,8 +95,21 @@ function render(){
   document.documentElement.lang = LANG;
   const route = location.hash.replace(/^#\/?/, '');
   const app = document.getElementById('app');
-  app.innerHTML = route && entryById(route)?.id === route ? renderEntry(entryById(route)) : renderIndex();
+
+  if (homeAnimationFrame) {
+    cancelAnimationFrame(homeAnimationFrame);
+    homeAnimationFrame = null;
+  }
+
+  const isEntry = route && entryById(route)?.id === route;
+  app.innerHTML = isEntry ? renderEntry(entryById(route)) : renderIndex();
+
   bindLang();
+
+  if (!isEntry) {
+    initHomeMotion();
+  }
+
   window.scrollTo(0,0);
 }
 
@@ -104,35 +118,112 @@ function renderLang(){
 }
 
 function renderIndex(){
-  const tabs = entries.map((e, i)=>`
-    <a class="archive-tab tab-${i+1}" href="#/${e.id}" style="--i:${i}">
-      <span class="tab-code">${e.code}</span>
-      <span class="tab-title">${formatTitle(e)}</span>
-      <span class="tab-meta">${L(e.feelsShort)}</span>
-      <span class="tab-image" style="background-image:url('${e.image}')"></span>
+  const tiles = entries.map((e, i)=>`
+    <a
+      class="orbit-tile"
+      href="#/${e.id}"
+      data-orbit-index="${i}"
+      aria-label="${e.code} — ${formatTitle(e)}"
+    >
+      <span class="orbit-art">
+        <img src="assets/tiles/${e.id}.png" alt="${formatTitle(e)} 3D tactile soil tile">
+      </span>
+      <span class="orbit-caption">
+        <span>${e.code}</span>
+        <strong>${formatTitle(e)}</strong>
+      </span>
     </a>`).join('');
 
   return `
-    <section class="install-home">
-      <header class="home-top">
-        <span>TERRA FIELD ARCHIVE</span>
+    <section class="orbit-home">
+      <header class="orbit-header">
+        <span class="orbit-volume">VOL. 01 / 12 SOIL SPECIMENS</span>
         ${renderLang()}
       </header>
 
-      <main class="home-stage">
-        <div class="home-copy">
-          <p class="kicker">VOL. 01 / SOIL SPECIMENS</p>
-          <h1>TERRA<br>FIELD<br>ARCHIVE</h1>
-          <p class="home-lead">${LANG==='id' ? 'Letakkan tile tanah pada area interaksi untuk membuka catatan taktil dan digital.' : 'Place a soil tile on the interaction area to open its tactile and digital record.'}</p>
-          <p class="home-logic">TOUCH-PICK-ARCHIVE</p>
+      <main class="orbit-stage">
+        <div class="orbit-collection" aria-label="TERRA soil specimen collection">
+          ${tiles}
         </div>
-        <div class="tab-stack" aria-label="Soil entries">${tabs}</div>
+
+        <div class="orbit-centre">
+          <p class="orbit-kicker">${LANG==='id'?'ARSIP TANAH TAKTIL':'TACTILE SOIL ARCHIVE'}</p>
+
+          <div class="terra-mark">
+            <img
+              src="assets/logo/terra-logo.svg"
+              alt="TERRA"
+              onerror="this.hidden=true; this.nextElementSibling.hidden=false;"
+            >
+            <span class="terra-wordmark" hidden>TERRA</span>
+          </div>
+
+          <p class="orbit-instruction">
+            ${LANG==='id'
+              ? 'Letakkan tile pada area interaksi untuk membuka catatan tanah.'
+              : 'Place a tile on the interaction area to open its soil record.'}
+          </p>
+
+          <p class="orbit-logic">TOUCH-PICK-ARCHIVE</p>
+        </div>
+
+        <div class="orbit-guide orbit-guide-one" aria-hidden="true"></div>
+        <div class="orbit-guide orbit-guide-two" aria-hidden="true"></div>
       </main>
 
-      <footer class="home-footer">
-        <span>${LANG==='id' ? 'Menunggu spesimen' : 'Waiting for specimen'}</span>
+      <footer class="orbit-footer">
+        <span class="waiting-dot" aria-hidden="true"></span>
+        <span>${LANG==='id'?'Menunggu spesimen':'Waiting for specimen'}</span>
+        <span>${LANG==='id'?'Pilih tile untuk menjelajah':'Select a tile to browse'}</span>
       </footer>
     </section>`;
+}
+
+function initHomeMotion(){
+  const stage = document.querySelector('.orbit-stage');
+  const tiles = [...document.querySelectorAll('.orbit-tile')];
+
+  if (!stage || !tiles.length) return;
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const startTime = performance.now();
+  const duration = 42000;
+
+  function positionTiles(now){
+    const rect = stage.getBoundingClientRect();
+    const centreX = rect.width / 2;
+    const centreY = rect.height / 2;
+
+    const radiusX = Math.min(rect.width * 0.41, 660);
+    const radiusY = Math.min(rect.height * 0.34, 330);
+    const progress = reduceMotion ? 0 : ((now - startTime) % duration) / duration;
+    const baseRotation = progress * Math.PI * 2;
+
+    tiles.forEach((tile, index)=>{
+      const startingAngle = (index / tiles.length) * Math.PI * 2 - Math.PI / 2;
+      const angle = startingAngle + baseRotation;
+
+      const x = centreX + Math.cos(angle) * radiusX;
+      const y = centreY + Math.sin(angle) * radiusY;
+
+      // Objects at the bottom/front become slightly larger.
+      const depth = (Math.sin(angle) + 1) / 2;
+      const scale = 0.72 + depth * 0.45;
+      const opacity = 0.58 + depth * 0.42;
+      const floatY = reduceMotion ? 0 : Math.sin((now / 1700) + index * 0.83) * 7;
+
+      tile.style.transform =
+        `translate3d(${x}px, ${y + floatY}px, 0) translate(-50%, -50%) scale(${scale})`;
+      tile.style.opacity = opacity.toFixed(3);
+      tile.style.zIndex = String(10 + Math.round(depth * 80));
+    });
+
+    if (!reduceMotion) {
+      homeAnimationFrame = requestAnimationFrame(positionTiles);
+    }
+  }
+
+  positionTiles(startTime);
 }
 
 function rows(data){
